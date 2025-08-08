@@ -8,6 +8,8 @@ import { DataService } from './services/DataService';
 import { useCart } from './hooks/useCart';
 import { useOrders } from './hooks/useOrders';
 import NavBar from './components/NavBar';
+import { syncEngine } from './services/SyncEngine';
+import SyncBadge from './components/SyncBadge';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -22,6 +24,11 @@ const App: React.FC = () => {
       await DataService.init(initialProducts);
       setProducts(DataService.getProducts());
     })();
+  }, []);
+
+  // start sync engine once
+  useEffect(() => {
+    syncEngine.start();
   }, []);
 
   let content: React.ReactNode;
@@ -64,6 +71,7 @@ const App: React.FC = () => {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <NavBar view={view} setView={setView} />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>{content}</div>
+      <SyncBadge />
     </div>
   );
 };

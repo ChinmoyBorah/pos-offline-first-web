@@ -1,21 +1,261 @@
 {
-  "products": [
+  "products": [],
+  "orders": [
     {
-      "id": "1",
-      "name": "Burger",
-      "price": 5.99
+      "id": "1754652794648-cba8d537913e98",
+      "items": [
+        {
+          "productId": "1",
+          "qty": 1
+        },
+        {
+          "productId": "2",
+          "qty": 1
+        }
+      ],
+      "status": "ready",
+      "createdAt": 1754652794648
     },
     {
-      "id": "2",
-      "name": "Fries",
-      "price": 2.49
+      "id": "1754652811351-e76581a97830e",
+      "items": [
+        {
+          "productId": "2",
+          "qty": 1
+        }
+      ],
+      "status": "ready",
+      "createdAt": 1754652811351
     },
     {
-      "id": "3",
-      "name": "Soft Drink",
-      "price": 1.99
+      "id": "1754652836216-9ce08975b814a",
+      "items": [
+        {
+          "productId": "3",
+          "qty": 1
+        }
+      ],
+      "status": "preparing",
+      "createdAt": 1754652836216
+    },
+    {
+      "id": "1754652877553-18479cee6a55e8",
+      "items": [
+        {
+          "productId": "2",
+          "qty": 1
+        }
+      ],
+      "status": "preparing",
+      "createdAt": 1754652877553
+    },
+    {
+      "id": "1754656933561-7cbc097e3bf308",
+      "items": [
+        {
+          "productId": "3",
+          "qty": 1
+        }
+      ],
+      "status": "preparing",
+      "createdAt": 1754656933561
     }
   ],
-  "orders": [],
-  "changes": []
+  "changes": [
+    {
+      "id": "1754652772231-5b48d5c300d738",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "1"
+      },
+      "ts": 1754652772231
+    },
+    {
+      "id": "1754652773234-717d264fcd0418",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "2"
+      },
+      "ts": 1754652773234
+    },
+    {
+      "id": "1754652794649-5722204ea52c28",
+      "type": "addOrder",
+      "payload": {
+        "id": "1754652794648-cba8d537913e98",
+        "items": [
+          {
+            "productId": "1",
+            "qty": 1
+          },
+          {
+            "productId": "2",
+            "qty": 1
+          }
+        ],
+        "status": "ready",
+        "createdAt": 1754652794648
+      },
+      "ts": 1754652794649
+    },
+    {
+      "id": "1754652807848-2426b41c3c18d8",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "2"
+      },
+      "ts": 1754652807848
+    },
+    {
+      "id": "1754652811351-e64780910e19b",
+      "type": "addOrder",
+      "payload": {
+        "id": "1754652811351-e76581a97830e",
+        "items": [
+          {
+            "productId": "2",
+            "qty": 1
+          }
+        ],
+        "status": "ready",
+        "createdAt": 1754652811351
+      },
+      "ts": 1754652811351
+    },
+    {
+      "id": "1754652831882-d1ed8fb11049e",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "3"
+      },
+      "ts": 1754652831882
+    },
+    {
+      "id": "1754652836216-1904c6a813cd98",
+      "type": "addOrder",
+      "payload": {
+        "id": "1754652836216-9ce08975b814a",
+        "items": [
+          {
+            "productId": "3",
+            "qty": 1
+          }
+        ],
+        "status": "preparing",
+        "createdAt": 1754652836216
+      },
+      "ts": 1754652836216
+    },
+    {
+      "id": "1754652875871-893501102e01",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "2"
+      },
+      "ts": 1754652875871
+    },
+    {
+      "id": "1754652877553-e2a31ce7a39348",
+      "type": "addOrder",
+      "payload": {
+        "id": "1754652877553-18479cee6a55e8",
+        "items": [
+          {
+            "productId": "2",
+            "qty": 1
+          }
+        ],
+        "status": "preparing",
+        "createdAt": 1754652877553
+      },
+      "ts": 1754652877553
+    },
+    {
+      "id": "1754656932514-facd465007eb3",
+      "type": "cartAdd",
+      "payload": {
+        "productId": "3"
+      },
+      "ts": 1754656932514
+    },
+    {
+      "id": "1754656933561-2922c35ea79ea8",
+      "type": "addOrder",
+      "payload": {
+        "id": "1754656933561-7cbc097e3bf308",
+        "items": [
+          {
+            "productId": "3",
+            "qty": 1
+          }
+        ],
+        "status": "preparing",
+        "createdAt": 1754656933561
+      },
+      "ts": 1754656933561
+    },
+    {
+      "id": "1754657869345-0ea31348d56908",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652794648-cba8d537913e98",
+        "status": "preparing"
+      },
+      "ts": 1754657869345
+    },
+    {
+      "id": "1754658102230-6ed8a7784d54c",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652811351-e76581a97830e",
+        "status": "preparing"
+      },
+      "ts": 1754658102230
+    },
+    {
+      "id": "1754658143896-66b14fb0bf0a08",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652794648-cba8d537913e98",
+        "status": "ready"
+      },
+      "ts": 1754658143896
+    },
+    {
+      "id": "1754658144745-11bdf38e93e698",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652811351-e76581a97830e",
+        "status": "ready"
+      },
+      "ts": 1754658144745
+    },
+    {
+      "id": "1754658216279-3d978e13370b8",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652836216-9ce08975b814a",
+        "status": "preparing"
+      },
+      "ts": 1754658216279
+    },
+    {
+      "id": "1754658219749-a9d93208b97d1",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754652877553-18479cee6a55e8",
+        "status": "preparing"
+      },
+      "ts": 1754658219749
+    },
+    {
+      "id": "1754658221713-cab9eebdee315",
+      "type": "updateOrderStatus",
+      "payload": {
+        "orderId": "1754656933561-7cbc097e3bf308",
+        "status": "preparing"
+      },
+      "ts": 1754658221713
+    }
+  ]
 }

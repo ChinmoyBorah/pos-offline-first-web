@@ -1,5 +1,7 @@
 import { Product } from '../features/catalog/types';
 
+const ROLE = (import.meta as any).env?.VITE_ROLE || 'generic';
+
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed';
 
 export interface Order {
@@ -10,13 +12,33 @@ export interface Order {
 }
 
 class LocalDataService {
-  private static PRODUCTS_KEY = 'pos_products';
-  private static CART_KEY = 'pos_cart';
-  private static ORDERS_KEY = 'pos_orders';
-  private static CHANGES_KEY = 'pos_changes';
+  private static PRODUCTS_KEY = `${ROLE}_pos_products`;
+  private static CART_KEY = `${ROLE}_pos_cart`;
+  private static ORDERS_KEY = `${ROLE}_pos_orders`;
+  static CHANGES_KEY = `${ROLE}_pos_changes`;
 
   private cartListeners = new Set<(cart: Record<string, number>) => void>();
   private orderListeners = new Set<(orders: Order[]) => void>();
+
+  /** Apply change coming from server without re-queuing */
+  applyRemoteChange(change: { type: string; payload: any }) {
+    if (change.type === 'addOrder') {
+      const orders = this.getOrders();
+      if (!orders.find(o => o.id === change.payload.id)) {
+        orders.push(change.payload);
+        this.saveOrders(orders);
+      }
+    } else if (change.type === 'updateOrderStatus') {
+      const orders = this.getOrders();
+      const idx = orders.findIndex(o => o.id === change.payload.orderId);
+      if (idx !== -1) {
+        orders[idx].status = change.payload.status;
+        this.saveOrders(orders);
+      }
+    } else if (change.type === 'setProducts') {
+      localStorage.setItem(LocalDataService.PRODUCTS_KEY, JSON.stringify(change.payload));
+    }
+  }
 
   /** Utility: generate a quasi-unique id without external deps */
   private generateId() {
@@ -163,4 +185,7 @@ class LocalDataService {
   }
 }
 
-export const DataService = new LocalDataService(); 
+export const DataService = new LocalDataService();
+
+// convenient re-export for other modules (e.g., SyncEngine)
+export const CHANGES_KEY = LocalDataService.CHANGES_KEY; 
