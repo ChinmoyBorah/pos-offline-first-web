@@ -13,13 +13,12 @@ const CartDrawer: React.FC<Props> = ({ products, cart, onAdd, onRemove, onChecko
   const cartItems = Object.entries(cart)
     .map(([productId, qty]) => {
       const product = products.find(p => p.id === productId);
-      if (!product) return null; // product list not loaded yet or missing
-      return { product, qty };
+      return { ...product, qty };
     })
-    .filter((item): item is { product: Product; qty: number } => item !== null);
+    .filter((item): item is { id: string, name: string, price: number, qty: number } => item !== null);
 
   const total = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.qty,
+    (sum, item) => sum + item.price * item.qty,
     0
   );
 
@@ -34,9 +33,9 @@ const CartDrawer: React.FC<Props> = ({ products, cart, onAdd, onRemove, onChecko
     >
       <h2>Cart</h2>
       {cartItems.length === 0 && <p>No items yet.</p>}
-      {cartItems.map(({ product, qty }) => (
+      {cartItems.map(({ id, name, qty }) => (
         <div
-          key={product.id}
+          key={id}
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -45,11 +44,11 @@ const CartDrawer: React.FC<Props> = ({ products, cart, onAdd, onRemove, onChecko
           }}
         >
           <span>
-            {product.name} x {qty}
+            {name} x {qty}
           </span>
           <div>
-            <button onClick={() => onRemove(product.id)}>-</button>
-            <button onClick={() => onAdd(product.id)}>+</button>
+            <button onClick={() => onRemove(id)}>-</button>
+            <button onClick={() => onAdd(id)}>+</button>
           </div>
         </div>
       ))}

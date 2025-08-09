@@ -33,7 +33,7 @@ async function start() {
   });
 
   app.post("/sync", async (req, res) => {
-    const { changes = [], lastSyncAt = 0 } = req.body;
+    const { changes = [], lastSyncAt = 0, role = "generic" } = req.body;
 
     // Accept incoming changes
     for (const change of changes) {
@@ -49,8 +49,7 @@ async function start() {
 
     await db.write();
 
-    const serverChanges = db.data.changes.filter((c) => c.ts > lastSyncAt);
-
+    const serverChanges = db.data.changes;
     res.json({ serverChanges, acceptedIds: changes.map((c) => c.id) });
   });
 

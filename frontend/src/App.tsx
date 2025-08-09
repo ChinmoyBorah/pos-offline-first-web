@@ -15,7 +15,6 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const { cart, addItem, removeItem } = useCart();
   const { orders, updateStatus } = useOrders();
-
   const [view, setView] = useState<string>('cashier');
 
   // Seed products into DataService and pull them for UI
