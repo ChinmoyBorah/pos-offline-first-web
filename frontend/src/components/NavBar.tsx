@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './nav.module.css';
 
 interface Props {
   view: string;
@@ -15,24 +16,15 @@ const views = [
 const NavBar: React.FC<Props> = ({ view, setView }) => {
   return (
     <nav
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        background: '#333',
-        color: '#fff',
-      }}
+      className={styles.nav}
     >
       {views.map(v => (
         <button
           key={v.key}
+          className={styles.navtabs}
           onClick={() => setView(v.key)}
           style={{
             background: v.key === view ? '#555' : 'transparent',
-            color: '#fff',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
           }}
         >
           {v.label}

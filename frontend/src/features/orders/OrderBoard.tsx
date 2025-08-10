@@ -1,5 +1,6 @@
 import React from "react";
 import { Order, OrderStatus, DataService } from "../../services/DataService";
+import styles from "./orderBoard.module.css";
 
 interface Props {
   orders: Order[];
@@ -21,11 +22,11 @@ const OrderBoard: React.FC<Props> = ({
 }) => {
   console.log("Orders", orders);
   return (
-    <div style={{ flex: 1, padding: "1rem", overflowY: "auto" }}>
+    <div className={styles.cartDrawerContainer}>
       <h2>Orders</h2>
       {(visibleStatuses ?? statusFlow).map((status) => (
-        <div key={status} style={{ marginBottom: "1rem" }}>
-          <h3 style={{ textTransform: "capitalize" }}>{status}</h3>
+        <div key={status} className={styles.cartDrawerContent}>
+          <h3 className={styles.cartHeader}>{status}</h3>
           {orders.filter((o) => o.status === status).length === 0 && (
             <p>No orders</p>
           )}
@@ -42,20 +43,16 @@ const OrderBoard: React.FC<Props> = ({
               return (
                 <div
                   key={o.id}
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "0.5rem",
-                    marginBottom: "0.5rem",
-                  }}>
+                  className={styles.cartDrawerItem}>
                   <div>ID: {o.id.slice(-6)}</div>
-                  <ul style={{ margin: "0.25rem 0 0.5rem 1rem", padding: 0 }}>
+                  <ul className={styles.cartDrawerItemList}>
                     {o.items.map((it) => {
                       const product = DataService.getProducts().find(
                         (p) => p.id === it.productId
                       );
                       const label = product ? product.name : it.productId;
                       return (
-                        <li key={it.productId} style={{ listStyle: "disc" }}>
+                        <li key={it.productId} className={styles.cartDrawerLi}>
                           {label} x {it.qty}
                         </li>
                       );
@@ -63,7 +60,7 @@ const OrderBoard: React.FC<Props> = ({
                   </ul>
                   {nextStatus && (
                     <button
-                      style={{ marginTop: "0.5rem" }}
+                      className={styles.cartSubmitButton}
                       onClick={() => onAdvance(o.id, nextStatus)}>
                       Mark {nextStatus}
                     </button>

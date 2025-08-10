@@ -1,0 +1,9 @@
+.syncBadge {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 12px;
+}

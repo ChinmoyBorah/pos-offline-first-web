@@ -1,0 +1,35 @@
+
+
+.cartDrawerContainer {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.cartDrawerContent {
+    margin-bottom: 1rem;
+}
+
+.cartHeader {
+    text-transform: capitalize;
+}
+
+.cartDrawerItem {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+
+.cartDrawerItemList {
+    margin: 0.25rem 0 0.5rem 1rem;
+    padding: 0;
+}
+
+.cartSubmitButton {
+    margin-top: 0.5rem;
+}
+
+.cartDrawerLi {
+    list-style: disc;
+}

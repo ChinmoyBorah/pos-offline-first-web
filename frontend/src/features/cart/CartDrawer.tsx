@@ -1,5 +1,6 @@
-import React from 'react';
-import { Product } from '../catalog/types';
+import React from "react";
+import { Product } from "../catalog/types";
+import styles from "./cartDrawer.module.css";
 
 interface Props {
   products: Product[];
@@ -9,40 +10,35 @@ interface Props {
   onCheckout: () => void;
 }
 
-const CartDrawer: React.FC<Props> = ({ products, cart, onAdd, onRemove, onCheckout }) => {
+const CartDrawer: React.FC<Props> = ({
+  products,
+  cart,
+  onAdd,
+  onRemove,
+  onCheckout,
+}) => {
   const cartItems = Object.entries(cart)
     .map(([productId, qty]) => {
-      const product = products.find(p => p.id === productId);
+      const product = products.find((p) => p.id === productId);
       return { ...product, qty };
     })
-    .filter((item): item is { id: string, name: string, price: number, qty: number } => item !== null);
+    .filter(
+      (
+        item
+      ): item is { id: string; name: string; price: number; qty: number } =>
+        item !== null
+    );
 
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
+  const total = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
-    <div
-      style={{
-        width: '300px',
-        borderLeft: '1px solid #ddd',
-        padding: '1rem',
-        overflowY: 'auto'
-      }}
-    >
+    <div className={styles.cartContainer}>
       <h2>Cart</h2>
       {cartItems.length === 0 && <p>No items yet.</p>}
       {cartItems.map(({ id, name, qty }) => (
         <div
           key={id}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '0.5rem'
-          }}
-        >
+          className={styles.cartContent}>
           <span>
             {name} x {qty}
           </span>
@@ -61,4 +57,4 @@ const CartDrawer: React.FC<Props> = ({ products, cart, onAdd, onRemove, onChecko
   );
 };
 
-export default CartDrawer; 
+export default CartDrawer;
