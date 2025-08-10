@@ -77,7 +77,7 @@ class SyncEngine {
 
       // determine latest timestamp among received changes or keep current
       const maxTs = serverChanges.reduce(
-        (m, ch) => (ch.ts && ch.ts > m ? ch.ts : m),
+        (m, ch) => (ch.serverTs && ch.serverTs > m ? ch.serverTs : m),
         this.lastSyncAt
       );
       this.lastSyncAt = maxTs;

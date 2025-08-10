@@ -281,22 +281,33 @@ A. Front-End (`SyncEngine`)
 
    <h2>Issues with present sync method</h2>
 
-   <h3>Issue Description</h3>
+      <h3>1st issue: Issue Description</h3>
 
-   <section>
-   There is an issue because of the logic of lastSyncAt:
+      <section>
+      There are 2 issues in this implementation of lastSyncAt:
+          Suppose we are creating orders from cashier and kitchen app in the order:
+            1. cashier app adds item no 1
+            2. kitchen app adds item no 2
+            3. cashier app adds item no 3
 
-6. Suppose we are creating orders from cashier and kitchen app in the order:
-   1. cashier app adds item no 1
-   2. kitchen app adds item no 2
-   3. cashier app adds item no 3
+          Now Suppose kitchen app starts syncing first then cashier app. On kitchen app sync, it updates the lastSyncAt to timestamp of item 2 and server returns the app only changes for item 2.Hence it cannot sync with cashier app yet.
 
-Now Suppose kitchen app starts syncing first then cashier app. On kitchen app sync, it updates the lastSyncAt to timestamp of item 2 and server returns the app only changes for item 2.Hence it cannot sync with cashier app yet.
+          When cashier app syncs, it will update lastSyncAt to timestamp of item 3 and server will return all changes hence it will also sync with kitchen app.
 
-When cashier app syncs, it will update lastSyncAt to timestamp of item 3 and server will return all changes hence it will also sync with kitchen app.
+          Now when kitchen app goes to sync with cashier app, server will only send the item 3 of kitchen app as it is the only one with timestamp greater than lastSyncAt of kitchen app.
+          </section>
 
-Now when kitchen app goes to sync with cashier app, server will only send the item 3 of kitchen app as it is the only one with timestamp greater than lastSyncAt of kitchen app.
 
-</section>
+        <h3>2st issue: Issue Description</h3>
+          Dependence on client-supplied timestamps -> if the clients have clocks that doesnot have the same time -> missing order during sync
 
-Solution: <b>server-assigned monotonic sequence numbers</b>
+          Solution: <b>server-assigned timeStamps</b>
+
+            Server will maintain time when the sync happens, and will append that time to the change object before pushing it to the server changes array.
+            in client, It will maintain the sync time of the change that was synced last
+            Then server will serve the client with changes that synced only after the lastSync time of client.
+
+
+       
+
+      

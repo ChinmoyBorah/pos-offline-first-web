@@ -14,6 +14,7 @@ const adapter = new JSONFile(path.join(__dirname, "db.json"));
 const db = new Low(adapter, { products: [], orders: [], changes: [] });
 
 async function start() {
+  let serverTs = Date.now();
   await db.read();
   if (!db.data) {
     db.data = { products: [], orders: [], changes: [] };
@@ -34,9 +35,10 @@ async function start() {
 
   app.post("/sync", async (req, res) => {
     const { changes = [], lastSyncAt = 0, role = "generic" } = req.body;
-
+    serverTs = Date.now();
     // Accept incoming changes
     for (const change of changes) {
+      change.serverTs = serverTs;
       db.data.changes.push(change);
       if (change.type === "addOrder") {
         db.data.orders.push(change.payload);
@@ -49,7 +51,9 @@ async function start() {
 
     await db.write();
 
-    const serverChanges = db.data.changes;
+    const serverChanges = db.data.changes.filter(
+      (c) => c.serverTs > lastSyncAt
+    );
     res.json({ serverChanges, acceptedIds: changes.map((c) => c.id) });
   });
 
