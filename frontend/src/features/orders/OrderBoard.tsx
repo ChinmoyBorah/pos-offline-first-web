@@ -41,9 +41,7 @@ const OrderBoard: React.FC<Props> = ({
               const currentIndex = statusFlow.indexOf(o.status);
               const nextStatus = statusFlow[currentIndex + 1];
               return (
-                <div
-                  key={o.id}
-                  className={styles.cartDrawerItem}>
+                <div key={o.id} className={styles.cartDrawerItem}>
                   <div>ID: {o.id.slice(-6)}</div>
                   <ul className={styles.cartDrawerItemList}>
                     {o.items.map((it) => {

@@ -11,6 +11,7 @@ import NavBar from "./components/NavBar";
 import { syncEngine } from "./services/SyncEngine";
 import SyncBadge from "./components/SyncBadge";
 import "./App.css";
+import PrintDashboard from "./features/prints/PrintDashboard";
 
 const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
 // Allowed values: cashier, kitchen, serving, manager
@@ -44,7 +45,9 @@ const App: React.FC = () => {
           cart={cart}
           onAdd={addItem}
           onRemove={removeItem}
-          onCheckout={() => DataService.createOrder(cart)}
+          onCheckout={() => {
+            DataService.createOrder(cart);
+          }}
         />
       </>
     );
@@ -69,9 +72,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="appContainer">
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <NavBar view={view} setView={setView} />
-      <div className="appContent">{content}</div>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          overflow: "hidden",
+          flexDirection: "row",
+        }}>
+        {content}
+      </div>
+      {(view === "cashier" || view === "kitchen") && (
+        <PrintDashboard products={products} />
+      )}
       <SyncBadge />
     </div>
   );
