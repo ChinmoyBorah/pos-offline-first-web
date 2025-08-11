@@ -139,7 +139,7 @@ class LocalDataService {
     this.emitOrders(orders);
   }
 
-  createOrder(cart: Record<string, number>) {
+  createOrder(cart: Record<string, number>, comments: string = "") {
     const items = Object.entries(cart).map(([productId, qty]) => ({
       productId,
       qty,
@@ -151,6 +151,7 @@ class LocalDataService {
       items,
       status: "pending",
       createdAt: Date.now(),
+      comments,
     };
 
     const orders = this.getOrders();

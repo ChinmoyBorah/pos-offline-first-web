@@ -56,6 +56,10 @@ const OrderBoard: React.FC<Props> = ({
                       );
                     })}
                   </ul>
+                  <div style={{ fontSize: "0.8rem" }}>
+                    
+                    {o.comments && <em> Comments: {o.comments}</em>}
+                  </div>
                   {nextStatus && (
                     <button
                       className={styles.cartSubmitButton}

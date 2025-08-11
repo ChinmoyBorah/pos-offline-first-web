@@ -45,8 +45,8 @@ const App: React.FC = () => {
           cart={cart}
           onAdd={addItem}
           onRemove={removeItem}
-          onCheckout={() => {
-            DataService.createOrder(cart);
+          onCheckout={(cmt: string) => {
+            DataService.createOrder(cart, cmt);
           }}
         />
       </>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import React, { useState } from "react";
 import { useOrders } from "../../hooks/useOrders";
 import { DataService } from "../../services/DataService";
@@ -22,7 +23,7 @@ const PrintDashboard: React.FC<Props> = ({ products }) => {
 
   const openEdit = (o: any) => {
     setEditing(o.id);
-    setTempItems(o.items.map((it) => ({ ...it })));
+    setTempItems(o.items.map((it: any) => ({ ...it })));
     setComments(o.comments || "");
   };
 
@@ -53,7 +54,7 @@ const PrintDashboard: React.FC<Props> = ({ products }) => {
     <div
       style={{
         borderTop: "1px solid #ccc",
-        padding: "0.5rem",
+        padding: "1rem 2rem",
         maxHeight: "200px",
         overflowY: "auto",
       }}>
@@ -68,7 +69,19 @@ const PrintDashboard: React.FC<Props> = ({ products }) => {
               justifyContent: "space-between",
               marginBottom: "0.3rem",
             }}>
-            <span>Order {o.id.slice(-6)}</span>
+            <div>
+              <strong>Order {o.id.slice(-6)}</strong>
+              <div style={{ fontSize: "0.8rem" }}>
+                {/* eslint-disable-next-line @typescript-eslint/explicit-function-return-type */}
+                {o.items
+                  .map((it: any) => {
+                    const p = products.find((pr) => pr.id === it.productId);
+                    return `${p?.name ?? it.productId} x${it.qty}`;
+                  })
+                  .join(", ")}
+                {o.comments && <em> – {o.comments}</em>}
+              </div>
+            </div>
             <div style={{ display: "flex", gap: "0.3rem" }}>
               <button onClick={() => handlePrint(o.id)}>Print Receipt</button>
               <button onClick={() => openEdit(o)}>Modify</button>
