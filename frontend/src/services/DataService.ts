@@ -8,6 +8,7 @@ export interface Order {
   status: OrderStatus;
   createdAt: number;
   updatedAt?: number | undefined;
+  comments?: string;
 }
 
 const ROLE = (import.meta as any).env?.VITE_ROLE || "generic";
@@ -53,6 +54,15 @@ class LocalDataService {
       }
     } else if (change.type === "setProducts") {
       localStorage.setItem(PRODUCTS_KEY, JSON.stringify(change.payload));
+    } else if (change.type === "modifyOrder") {
+      const orders = this.getOrders();
+      const idx = orders.findIndex((o) => o.id === change.payload.orderId);
+      if (idx !== -1) {
+        orders[idx].items = change.payload.items;
+        orders[idx].comments = change.payload.comments;
+        orders[idx].updatedAt = Date.now();
+        this.saveOrders(orders);
+      }
     }
   }
 
@@ -164,6 +174,27 @@ class LocalDataService {
     this.queueChange({
       type: "updateOrderStatus",
       payload: { orderId, status },
+      ts: Date.now(),
+    });
+  }
+
+  modifyOrder(
+    orderId: string,
+    items: { productId: string; qty: number }[],
+    comments: string
+  ) {
+    const orders = this.getOrders();
+    const idx = orders.findIndex(
+      (o) => o.id === orderId && o.status === "pending"
+    );
+    if (idx === -1) return;
+    orders[idx].items = items;
+    orders[idx].comments = comments;
+    orders[idx].updatedAt = Date.now();
+    this.saveOrders(orders);
+    this.queueChange({
+      type: "modifyOrder",
+      payload: { orderId, items, comments },
       ts: Date.now(),
     });
   }

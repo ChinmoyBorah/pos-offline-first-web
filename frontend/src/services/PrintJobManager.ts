@@ -1,6 +1,3 @@
-import { DataService, PrintJob } from "./DataService";
-
-const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
 class PrintJobManager {
   private timer: number | undefined;
   private readonly INTERVAL = 5000;
@@ -16,7 +13,7 @@ class PrintJobManager {
     if (next) this.process(next);
   }
 
-  private async process(job: PrintJob) {
+  private async process(job: any) {
     const html = `<pre>${job.content}</pre>`;
     const win = window.open("", "_blank", "width=300,height=600");
     if (win) {

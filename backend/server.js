@@ -46,6 +46,15 @@ async function start() {
         const { orderId, status } = change.payload;
         const order = db.data.orders.find((o) => o.id === orderId);
         if (order) order.status = status;
+      } else if (change.type === "addPrintJob") {
+        db.data.printJobs.push(change.payload);
+      } else if (change.type === "modifyOrder") {
+        const { orderId, items, comments } = change.payload;
+        const order = db.data.orders.find((o) => o.id === orderId);
+        if (order) {
+          order.items = items;
+          order.comments = comments;
+        }
       }
     }
 
