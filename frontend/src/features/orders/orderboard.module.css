@@ -4,10 +4,12 @@
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
+    width: 100vw;
 }
 
 .cartDrawerContent {
     margin-bottom: 1rem;
+    width: 30%;
 }
 
 .cartHeader {
