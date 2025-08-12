@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
-import CatalogList from "./features/catalog/CatalogList";
-import CartDrawer from "./features/cart/CartDrawer";
-import OrderBoard from "./features/orders/OrderBoard";
 import { Product } from "./features/catalog/types";
-import { initialProducts } from "./data/mockProducts";
 import { DataService } from "./services/DataService";
 import { useCart } from "./hooks/useCart";
 import { useOrders } from "./hooks/useOrders";
@@ -11,10 +7,14 @@ import NavBar from "./components/NavBar";
 import { syncEngine } from "./services/SyncEngine";
 import SyncBadge from "./components/SyncBadge";
 import "./App.css";
-import PrintDashboard from "./features/prints/PrintDashboard";
 
 const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
 // Allowed values: cashier, kitchen, serving, manager
+
+const CartDrawer = React.lazy(() => import("./features/cart/CartDrawer"));
+const OrderBoard = React.lazy(() => import("./features/orders/OrderBoard"));
+const PrintDashboard = React.lazy(() => import("./features/prints/PrintDashboard"));
+const CatalogList = React.lazy(() => import("./features/catalog/CatalogList"));
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,10 +24,7 @@ const App: React.FC = () => {
 
   // Seed products into DataService and pull them for UI
   useEffect(() => {
-    (async () => {
-      await DataService.init(initialProducts);
-      setProducts(DataService.getProducts());
-    })();
+    DataService.init(setProducts);
   }, []);
 
   // start sync engine once

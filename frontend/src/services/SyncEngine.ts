@@ -28,7 +28,7 @@ class SyncEngine {
     if (this.timerId) return; // already running
 
     window.addEventListener("online", () => this.tick());
-    this.timerId = window.setInterval(() => this.tick(), 15000);
+    this.timerId = window.setInterval(() => this.tick(), 10000);
     this.tick(); // immediate attempt
   }
 
@@ -73,7 +73,9 @@ class SyncEngine {
 
       // apply server changes
       const serverChanges = data.serverChanges as any[];
-      serverChanges.forEach((ch) => DataService.applyRemoteChange(ch));
+      serverChanges
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .forEach((ch) => DataService.applyRemoteChange(ch));
 
       // determine latest timestamp among received changes or keep current
       const maxTs = serverChanges.reduce(
@@ -82,12 +84,12 @@ class SyncEngine {
       );
       this.lastSyncAt = maxTs;
       this.setStatus("idle");
-      this.backoff = 5000; // reset
+      // this.backoff = 5000; // reset
     } catch (err) {
       console.error("Sync failed", err);
       this.setStatus("error");
       // exponential backoff handled by not doing anything; tick will try again on next interval
-      this.backoff = Math.min(this.backoff * 2, 60000);
+      // this.backoff = Math.min(this.backoff * 2, 60000);
     }
   }
 }

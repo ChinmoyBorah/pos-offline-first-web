@@ -20,7 +20,6 @@ const OrderBoard: React.FC<Props> = ({
   onAdvance,
   visibleStatuses,
 }) => {
-  console.log("Orders", orders);
   return (
     <div className={styles.cartDrawerContainer}>
       <h2>Orders</h2>
@@ -45,7 +44,7 @@ const OrderBoard: React.FC<Props> = ({
                   <div>ID: {o.id.slice(-6)}</div>
                   <ul className={styles.cartDrawerItemList}>
                     {o.items.map((it) => {
-                      const product = DataService.getProducts().find(
+                      const product = DataService?.getProducts()?.find(
                         (p) => p.id === it.productId
                       );
                       const label = product ? product.name : it.productId;

@@ -29,6 +29,12 @@ const PrintDashboard: React.FC<Props> = ({ products }) => {
 
   const applyEdit = () => {
     if (!orderEditing) return;
+    const fresh = orders.find((o) => o.id === orderEditing.id);
+    if (!fresh || fresh.status !== "pending") {
+      alert("Order is already being prepared and cannot be modified");
+      setEditing(null);
+      return;
+    }
     DataService.modifyOrder(orderEditing.id, tempItems, comments);
     setEditing(null);
   };

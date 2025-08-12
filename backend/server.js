@@ -13,9 +13,13 @@ const __dirname = path.dirname(__filename);
 const adapter = new JSONFile(path.join(__dirname, "db.json"));
 const db = new Low(adapter, { products: [], orders: [], changes: [] });
 
+const menuAdapter = new JSONFile(path.join(__dirname, "menuDb.json"));
+const menuDb = new Low(menuAdapter, { products: [], orders: [], changes: [] });
+
 async function start() {
   let serverTs = Date.now();
   await db.read();
+  await menuDb.read();
   if (!db.data) {
     db.data = { products: [], orders: [], changes: [] };
   } else {
@@ -29,8 +33,8 @@ async function start() {
   app.use(cors());
   app.use(bodyParser.json());
 
-  app.get("/products", (req, res) => {
-    res.json(db.data.products);
+  app.get("/menu", (req, res) => {
+    res.json(menuDb.data);
   });
 
   app.post("/sync", async (req, res) => {

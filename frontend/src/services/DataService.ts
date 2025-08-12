@@ -1,4 +1,5 @@
 import { Product } from "../features/catalog/types";
+import { initMenu } from "./MenuService";
 
 export type OrderStatus = "pending" | "preparing" | "ready" | "completed";
 
@@ -30,11 +31,12 @@ class LocalDataService {
     this.orderListeners.forEach((cb) => cb(orders));
   }
 
-  async init(productsSeed: Product[]) {
+  async init(setProducts: (products: Product[]) => void) {
     const cached = localStorage.getItem(PRODUCTS_KEY);
     if (!cached) {
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(productsSeed));
+      await initMenu();
     }
+    setProducts(this.getProducts());
   }
 
   /** Apply change coming from server without re-queuing */
