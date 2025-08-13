@@ -34,10 +34,18 @@ const OrderBoard: React.FC<Props> = ({
         padding: "0 1rem",
       }}>
       <div className={styles.cartDrawerContainer}>
-        <div style={{ display: "flex", justifyContent: "space-between", width: "50vw", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "50vw",
+            alignItems: "center",
+          }}>
           <h2>Orders</h2>
           {(view == "cashier" || view == "kitchen") && (
-            <button style={{ height: "20px" }} onClick={onOpenDashboard}>Print Dashboard</button>
+            <button style={{ height: "20px" }} onClick={onOpenDashboard}>
+              {view === "cashier" ? "Order Dashboard" : "Print Dashboard"}
+            </button>
           )}
         </div>
         {(visibleStatuses ?? statusFlow).map((status) => (

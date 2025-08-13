@@ -35,66 +35,76 @@ const App: React.FC = () => {
     syncEngine.start();
   }, []);
 
-  let content: React.ReactNode;
-
-  
-  if (view === "cashier") {
-    content = dashboard ? (
-      <PrintDashboard products={products} onBack={() => setDashboard(false)} />
-    ) : (
-      <>
-        <CatalogList
+  const renderContent = (): React.ReactNode => {
+    if (dashboard) {
+      const mod = ROLE === "cashier";
+      return (
+        <PrintDashboard
           products={products}
-          onAdd={addItem}
-          onOpenDashboard={() => setDashboard(true)}
+          showModify={mod}
+          onBack={() => setDashboard(false)}
         />
-        {Object.keys(cart).length > 0 && (
-          <CartDrawer
-            products={products}
-            cart={cart}
-            onAdd={addItem}
-            onRemove={removeItem}
-            onCheckout={(cmt: string) => {
-              DataService.createOrder(cart, cmt);
-            }}
+      );
+    }
+    // lock to ROLE – ignore other values
+    switch (ROLE) {
+      case "cashier":
+        return (
+          <>
+            <CatalogList
+              products={products}
+              onAdd={addItem}
+              onOpenDashboard={() => setDashboard(true)}
+            />
+            {Object.keys(cart).length > 0 && (
+              <CartDrawer
+                products={products}
+                cart={cart}
+                onAdd={addItem}
+                onRemove={removeItem}
+                onCheckout={(c) => DataService.createOrder(cart, c)}
+              />
+            )}
+          </>
+        );
+
+      case "kitchen":
+        return (
+          <OrderBoard
+            view={ROLE}
+            orders={orders}
+            onAdvance={updateStatus}
+            visibleStatuses={["pending", "preparing"]}
+            onOpenDashboard={() => setDashboard(true)}
           />
-        )}
-      </>
-    );
-  } else if (view === "kitchen") {
-    content = dashboard ? (
-      <PrintDashboard
-        products={products}
-        showModify={false}
-        onBack={() => setDashboard(false)}
-      />
-    ) : (
-      <>
-        <OrderBoard
-          view={view}
-          orders={orders}
-          onAdvance={updateStatus}
-          visibleStatuses={["pending", "preparing"]}
-          onOpenDashboard={() => setDashboard(true)}
-        />
-      </>
-    );
-  } else if (view === "serving") {
-    content = (
-      <OrderBoard
-        view={view}
-        orders={orders}
-        onAdvance={updateStatus}
-        visibleStatuses={["ready"]}
-      />
-    );
-  } else {
-    content = <OrderBoard view={view} orders={orders} onAdvance={updateStatus} />;
-  }
+        );
+
+      case "serving":
+        return (
+          <OrderBoard
+            view={ROLE}
+            orders={orders}
+            onAdvance={updateStatus}
+            visibleStatuses={["ready"]}
+            onOpenDashboard={() => setDashboard(true)}
+          />
+        );
+
+      default:
+        return (
+          <OrderBoard
+            view={ROLE}
+            orders={orders}
+            onAdvance={updateStatus}
+            onOpenDashboard={() => setDashboard(true)}
+          />
+        );
+    }
+  };
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <NavBar view={view} setView={setView} setDashboard={setDashboard} />
+      <NavBar view={ROLE} setView={setView} setDashboard={setDashboard} />
       <Suspense fallback={<div>Loading...</div>}>
         <div
           style={{
@@ -103,7 +113,7 @@ const App: React.FC = () => {
             overflow: "hidden",
             flexDirection: "row",
           }}>
-          {content}
+          {renderContent()}
         </div>
       </Suspense>
       {/* {dashboard && (

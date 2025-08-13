@@ -7,6 +7,7 @@ interface Props {
   setDashboard: (v: boolean) => void;
 }
 
+const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
 const views = [
   { key: "cashier", label: "Cashier" },
   { key: "kitchen", label: "Kitchen" },
@@ -15,9 +16,10 @@ const views = [
 ];
 
 const NavBar: React.FC<Props> = ({ view, setView, setDashboard }) => {
+  const visible = views.filter((v) => v.key === ROLE);
   return (
     <nav className={styles.nav}>
-      {views.map((v) => (
+      {visible.map((v) => (
         <button
           key={v.key}
           className={styles.navtabs}

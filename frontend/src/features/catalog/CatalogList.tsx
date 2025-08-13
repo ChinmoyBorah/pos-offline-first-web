@@ -14,6 +14,8 @@ const CatalogList: React.FC<Props> = ({ products, onAdd, onOpenDashboard }) => {
     p.name.toLowerCase().includes(query.toLowerCase())
   );
 
+  const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
+  const dashLabel = ROLE === "cashier" ? "Order Dashboard" : "Print Dashboard";
   return (
     <div style={{ flex: 1, padding: "2rem", overflowY: "auto" }}>
       <h2 style={{ margin: 0 }}>Catalog</h2>
@@ -31,7 +33,7 @@ const CatalogList: React.FC<Props> = ({ products, onAdd, onOpenDashboard }) => {
           onChange={(e) => setQuery(e.target.value)}
           style={{ maxWidth: "500px", padding: "0.5rem", margin: "0.5rem 0" }}
         />
-        <button onClick={onOpenDashboard}>Print Dashboard</button>
+        <button onClick={onOpenDashboard}>{dashLabel}</button>
       </div>
 
       <ul style={{ listStyle: "none", padding: 0 }}>

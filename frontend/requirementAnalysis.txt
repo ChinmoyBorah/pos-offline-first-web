@@ -1,0 +1,59 @@
+
+
+
+1. Offline-First Architecture (15 minutes)
+  a. Design a data synchronization strategy for orders, inventory, and menu items
+  b. How would you handle conflict resolution when multiple devices modify the
+     same data offline?
+  c. Describe your approach to ensuring data consistency across devices
+
+Solution:
+  Data synchronization strategy :
+   1. Every write(create order, update Order status, modify order) is turned into a tiny change object and appended to a role-scoped queue in LocalStorage.
+   2. Single sync endpoint (/sync) where clients POST its queued changes along with the last time it was synced.; 
+   3. Server stamps every inbound change request from client with an server timestamp, stores it and sends it to the client.
+   3. Server returns only changes whose server timestamp is greater than the last sync time of client; bandwidth stays small.
+   4. Apply on device – Frontend replays the ordered changes into its local collections (orders) and UIs subscribed to those collections re-render.
+   5. LastSyncTime of client is calculated as the maximum servertimestamp of the changes returned by server.
+
+  Conflict-resolution when two devices edit offline
+   1. The client stores and processes the changes in a queue, and also assigns a localtimestamp to each change, hence writes are processed in the order they are queued and also it can be sorted according to localtimestamp
+   2. Last writer wins - create order, update order status or modify order, the last change for each is reflected.
+
+  Data consistency:
+   1. Each device tries to sync with server on every reload, every 10 seconds and when the device connection changes to online
+   2. The sync strategy ensures that data is consistent across applications.
+
+
+2. Performance Constraints (15 minutes)
+  a. The system runs on Android tablets with 2GB RAM and older ARM processors
+  b. How would you optimize JavaScript bundle size and runtime performance?
+  c. Describe strategies for efficient DOM manipulation and memory
+     management
+
+Solution:
+   1. Ship only what the role needs (Cashier, Kitchen, Server, manager each has its own build).Lazy loading components and conditional rendering
+   2. No heavyweight libraries. Everything is plain React and javascript.
+   3. Heavy JSON parsing of menu is done once during boot, then cached.
+   4. Removing queued changes with acceptedIds(from server), to stop memory growth.
+   5. Printing pop-ups use a dedicated window.open method — no heavy iframe frameworks.
+   6. Long lists (catalog of 1000+) can be virtualised with react-window if needed.
+   7. Print modal unmounts after close, freeing its event listeners.
+
+
+3. Multi-Device Coordination (15 minutes)
+  a. How would you implement real-time order status updates between kitchen
+     display and cashier devices?
+  b. Design a queuing system for print jobs when multiple devices share a
+     thermal printer
+  c. Explain your approach to device discovery and pairing in a local network
+
+Solution:
+   a. 
+
+
+4. Data Storage Strategy (15 minutes)
+  a. Compare IndexedDB, WebSQL, and localStorage for your use case
+  b. How would you implement efficient local querying for large product
+      catalogs?
+  c. Design a data pruning strategy to manage storage limitations

@@ -57,26 +57,24 @@ packages ->
 
 1. **Role-scoped LocalStorage**
 
+   ```ts
+   const ROLE = import.meta.env.VITE_ROLE; // 'cashier', 'kitchen', ...
+   const PRODUCTS_KEY = `${ROLE}_pos_products`;
+   ```
 
-    ```ts
-    const ROLE = import.meta.env.VITE_ROLE; // 'cashier', 'kitchen', ...
-    const PRODUCTS_KEY = `${ROLE}_pos_products`;
-    ```
-
-    Each app writes to its own namespace (e.g. `cashier_pos_cart`).
+   Each app writes to its own namespace (e.g. `cashier_pos_cart`).
 
 2. **Prefixed sync meta** – per-role last-sync timestamps (`cashier_pos_sync_meta`).
 3. **Change provenance** – every queued change carries its `role` for backend auditing.
 
 4. **Build-time injection**
 
-
-    ```bash
-    # Cashier
-    VITE_ROLE=cashier npm run dev -- --port 5173
-    # Kitchen
-    VITE_ROLE=kitchen npm run dev -- --port 5174
-    ```
+   ```bash
+   # Cashier
+   VITE_ROLE=cashier npm run dev -- --port 5173
+   # Kitchen
+   VITE_ROLE=kitchen npm run dev -- --port 5174
+   ```
 
 ---
 
@@ -110,19 +108,19 @@ B. User interaction sequence (Cashier example)
 1.  User taps “Add” next to a product  
     → `CatalogList` calls `DataService.addToCart(productId)`
 2.  `addToCart()`  
-    • Reads current cart from LocalStorage  
-    • Mutates it in memory, persists it back (`<ROLE>_pos_cart`)  
-    • Emits `cartListeners` so the UI updates instantly  
-    • Appends a **change object** to the queue (`<ROLE>_pos_changes`)  
-    `json
-   { "id":"1693502921-abc", "type":"cartAdd",
-     "payload":{ "productId":"1" }, "ts":1693502921 }
-   ` 3. User hits “Checkout”  
-    → `createOrder(cart)`  
-    • Builds an `order` object `{ id, items, status:'pending', ts }`  
-    • Saves the order to `<ROLE>_pos_orders`  
-    • Queues an `addOrder` change  
-    • Clears the cart (and emits event so drawer empties)
+     • Reads current cart from LocalStorage  
+     • Mutates it in memory, persists it back (`<ROLE>_pos_cart`)  
+     • Emits `cartListeners` so the UI updates instantly  
+     • Appends a **change object** to the queue (`<ROLE>_pos_changes`)  
+     `json
+{ "id":"1693502921-abc", "type":"cartAdd",
+  "payload":{ "productId":"1" }, "ts":1693502921 }
+` 3. User hits “Checkout”  
+     → `createOrder(cart)`  
+     • Builds an `order` object `{ id, items, status:'pending', ts }`  
+     • Saves the order to `<ROLE>_pos_orders`  
+     • Queues an `addOrder` change  
+     • Clears the cart (and emits event so drawer empties)
 
 C. Role isolation  
  All keys are prefixed by `VITE_ROLE` (`cashier_pos_cart`, `kitchen_pos_orders`, …) so no two roles ever overwrite each other’s cache.
@@ -270,3 +268,73 @@ A. Front-End (`SyncEngine`)
              Server will maintain time when the sync happens, and will append that time to the change object before pushing it to the server changes array.
              in client, It will maintain the sync time of the change that was synced last
              Then server will serve the client with changes that synced only after the lastSync time of client.
+
+
+
+
+
+## 🔹 Print Feature Implementation Strategy
+
+The printing subsystem is **fully modular** so each role-app can adopt, swap or extend it without touching business logic.
+
+### Core Building Blocks
+
+1. **`services/PrintConfig.ts`**  
+   Central toggle & parameters.
+
+   ```ts
+   PrintConfig.failOnce(); // Next job will be forced to error once
+   PrintConfig.shouldFailNext; // Runtime flag (reset automatically)
+   ```
+
+   • Can be enriched with timeouts, destinations, custom templates, etc.  
+   • Auto-attached to `window` for dev-console usage; no UI exposure.
+
+2. **`services/DataService.ts`** (print section)  
+   Persistent LocalStorage bucket `<ROLE>_pos_printJobs` + listeners.  
+   CRUD helpers: `getPrintJobs`, `savePrintJobs`, `updatePrintJobStatus`, `removePrintJob`, `subscribePrintJobs`.
+
+3. **`services/PrintJobManager.ts`**  
+   Stateless runner that:
+   • polls every 4 s, picks first `queued` job that current role handles.  
+   • flips it → `printing`; waits `PROCESS_TIME` (5 s).  
+   • checks `PrintConfig.consumeFailFlag()` → decides _error_ vs _done_.  
+   • auto-removes success rows after 2 s.  
+   • exposes `add(job)` and `retry(id)`.
+
+4. **`hooks/usePrintJobs.ts`**  
+   Tiny React hook → realtime list for UI.
+
+5. **UI Components**  
+   • `PrintDashboard` subscribes to `usePrintJobs()`.  
+   • Spinner for active job, idle dot for queued, ✔ / ✖ outcome.  
+   • Retry button only when `status === "error"`.
+
+### Customisation & Re-use
+
+_Templates_ – `PrintJob.html` field stores raw HTML. Swap in another renderer or use a template factory per destination.
+
+_Destinations_ – extend `handlesDest()` to map new printer roles.
+
+_Failure Simulation_ – lives **only** in `PrintConfig`; production builds can tree-shake it out or guard with `process.env.NODE_ENV`.
+
+```ts
+// example: always fail kitchen prints in staging
+if (import.meta.env.MODE === "staging" && job.dest === "kitchen") {
+  PrintConfig.failOnce();
+}
+```
+
+### Sequence Diagram
+
+```
+Catalog → createOrder   ──► DataService.addPrintJob() ──► LocalStorage
+                          ▲                               │
+          PrintJobManager ◄──────── tick() ───────────────┘
+              │ printing                               (5s)
+              ▼
+          updatePrintJobStatus('done') ───► listener ───► UI ✔
+          removePrintJob() after 2s
+```
+
+The design ensures **one job at a time**, offline persistence, dev-only failure hooks and minimal coupling – any frontend or backend can drop-in a new `PrintJobManager` while keeping the storage & config contracts intact.

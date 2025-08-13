@@ -12,15 +12,31 @@ export interface Order {
   comments?: string;
 }
 
+// Print jobs
+export interface PrintJob {
+  id: string;
+  orderId: string;
+  dest: "receipt" | "kitchen";
+  priority: number;
+  html: string;
+  attempts: number;
+  status: "queued" | "printing" | "done" | "error";
+  startedAt?: number;
+  finishedAt?: number;
+}
+
 const ROLE = (import.meta as any).env?.VITE_ROLE || "generic";
 const PRODUCTS_KEY = `${ROLE}_pos_products`;
 const CART_KEY = `${ROLE}_pos_cart`;
 const ORDERS_KEY = `${ROLE}_pos_orders`;
 export const CHANGES_KEY = `${ROLE}_pos_changes`;
+// Print jobs
+const PRINT_KEY = `${ROLE}_pos_printJobs`;
 
 class LocalDataService {
   private cartListeners = new Set<(cart: Record<string, number>) => void>();
   private orderListeners = new Set<(orders: Order[]) => void>();
+  private printListeners = new Set<(jobs: PrintJob[]) => void>();
 
   //cart listeners to update the cart in the UI
   private emitCart(cart: Record<string, number>) {
@@ -29,6 +45,10 @@ class LocalDataService {
 
   private emitOrders(orders: Order[]) {
     this.orderListeners.forEach((cb) => cb(orders));
+  }
+
+  private emitPrintJobs(jobs: PrintJob[]) {
+    this.printListeners.forEach((cb) => cb(jobs));
   }
 
   async init(setProducts: (products: Product[]) => void) {
@@ -200,6 +220,46 @@ class LocalDataService {
       payload: { orderId, items, comments },
       ts: Date.now(),
     });
+  }
+
+  /* -------------------- Print job helpers -------------------- */
+  getPrintJobs(): PrintJob[] {
+    const raw = localStorage.getItem(PRINT_KEY);
+    return raw ? (JSON.parse(raw) as PrintJob[]) : [];
+  }
+
+  savePrintJobs(jobs: PrintJob[]) {
+    localStorage.setItem(PRINT_KEY, JSON.stringify(jobs));
+    this.emitPrintJobs(jobs);
+  }
+
+  removePrintJob(id: string) {
+    const list = this.getPrintJobs().filter((j) => j.id !== id);
+    this.savePrintJobs(list);
+  }
+
+  updatePrintJobStatus(id: string, status: PrintJob["status"]) {
+    const list = this.getPrintJobs();
+    const idx = list.findIndex((j) => j.id === id);
+    if (idx === -1) return;
+    list[idx].status = status;
+    if (status === "printing") {
+      list[idx].startedAt = Date.now();
+    } else if (status === "done" || status === "error") {
+      list[idx].finishedAt = Date.now();
+    } else if (status === "queued") {
+      list[idx].startedAt = undefined;
+      list[idx].finishedAt = undefined;
+    }
+    this.savePrintJobs(list);
+  }
+
+  subscribePrintJobs(cb: (jobs: PrintJob[]) => void) {
+    this.printListeners.add(cb);
+    cb(this.getPrintJobs());
+    return () => {
+      this.printListeners.delete(cb);
+    };
   }
 
   /* Change-queue helpers – stored for later sync with backend */

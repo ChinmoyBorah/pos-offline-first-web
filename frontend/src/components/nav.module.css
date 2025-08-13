@@ -4,6 +4,7 @@
     padding: 0.5rem 1rem;
     background: #333;
     color: #fff;
+    justify-content: center;
 }
 
 .navtabs {
