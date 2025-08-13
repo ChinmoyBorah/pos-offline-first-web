@@ -2,14 +2,14 @@
 
 
 1. Offline-First Architecture (15 minutes)
-  a. Design a data synchronization strategy for orders, inventory, and menu items
+  a. Design a data synchronization strategy for orders, inventory, and menu items.
   b. How would you handle conflict resolution when multiple devices modify the
      same data offline?
   c. Describe your approach to ensuring data consistency across devices
 
 Solution:
   Data synchronization strategy :
-   1. Every write(create order, update Order status, modify order) is turned into a tiny change object and appended to a role-scoped queue in LocalStorage.
+   1. Every write(create order, update Order status, modify order) is turned into a tiny change object and appended to a queue in LocalStorage.
    2. Single sync endpoint (/sync) where clients POST its queued changes along with the last time it was synced.; 
    3. Server stamps every inbound change request from client with an server timestamp, stores it and sends it to the client.
    3. Server returns only changes whose server timestamp is greater than the last sync time of client; bandwidth stays small.
@@ -17,11 +17,12 @@ Solution:
    5. LastSyncTime of client is calculated as the maximum servertimestamp of the changes returned by server.
 
   Conflict-resolution when two devices edit offline
-   1. The client stores and processes the changes in a queue, and also assigns a localtimestamp to each change, hence writes are processed in the order they are queued and also it can be sorted according to localtimestamp
+   1. The client stores and processes the changes in a queue, and also assigns a localtimestamp to each change, 
+   hence writes are processed in the order they are queued and also it can be sorted according to localtimestamp
    2. Last writer wins - create order, update order status or modify order, the last change for each is reflected.
 
   Data consistency:
-   1. Each device tries to sync with server on every reload, every 10 seconds and when the device connection changes to online
+   1. Each device tries to sync with server on every load/reload, every 10 seconds and when the device connection changes to online
    2. The sync strategy ensures that data is consistent across applications.
 
 
@@ -48,12 +49,42 @@ Solution:
      thermal printer
   c. Explain your approach to device discovery and pairing in a local network
 
-Solution:
-   a. 
+Solution:  
+  a. Real-time order status updates between kitchen
+     display and cashier devices: 
+   1. Real time order status update is done using polling and/or websockets/SSE. 
+   2. We can poll the server api /sync every 10 seconds, when page reloads and when the device changes its network status to online.
+   3. We can implement SSE/WebSockets that streams new server changes so that changes are synced faster when online. Client still persists locally the same way; 
+   the socket just replaces most pulls. If the socket drops, we fall back to polling with the same cursor.
 
+  b. Queuing system for print jobs when multiple devices share a thermal printer
+   1. Using Server-side queue: devices enqueue print intents to /print-queue with a unique job id, destination, priority, and rendered payload.
+   2. There should one device near each printer, like a "Print worker".
+   3. The worker polls on item at a time, prints, then complete.
+   4. If the agent crashes, any job stuck in printing for > 10 s is automatically reset to queued and picked up next time.
+   5. The cashier/kitchen clients poll /print-jobs every 2–3 s for its destination and shows spinner(pending), success or failure visuals.
+  
 
 4. Data Storage Strategy (15 minutes)
-  a. Compare IndexedDB, WebSQL, and localStorage for your use case
+  a. Compare IndexedDB, WebSQL, and localStorage for your use case.
   b. How would you implement efficient local querying for large product
       catalogs?
-  c. Design a data pruning strategy to manage storage limitations
+  c. Design a data pruning strategy to manage storage limitations.
+
+Solutions:
+ a. Comparing IndexedDB, WebSQL, and localStorage:
+   1. Localstorage has 5-10 MB limit. Read/Write is synchronous, blocks Ui on each read/write, when no of orders gets very high we might need to clear localstorage for faster reads and writes. But works everywhere , zero setup.
+   2. WenSql is deprecated. It is no longer actively being developed as a web standard and is not recommended for new projects
+   3. Indexdb is modern, right choice once we exceed localStorage size or need complex queries, supports async read/write and have large size quota. Supports indexes for fast look-up. Needs more boilerplate code or wrapper like dexie.js
+
+ b. How would you implement efficient local querying for large product
+      catalogs?
+   1. Normal filtering loads the entire array to memory. Its cause memory issue when the size of the menu gets very large(like 50k).
+   2. Solution would be to use Indexdb with an index on name of product.
+   3. Debounce search input, so we dont run filter on every key press.
+
+ c. Data pruning strategy:
+   1. We can keep only the present day (or last N day) order records in localStorage. We need a switch where user can remove all entries from storage before starting.
+   2. Drop changes older than particular time or day as a safety net.
+   3. Changes for orders which are completed (status complete), on manager device, can be remove from server changes that are sent to each devices.
+   
