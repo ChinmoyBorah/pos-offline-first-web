@@ -75,7 +75,7 @@ _Every mutation is a 200-byte JSON delta, so polling stays cheap even on 2G teth
 
 - **Speed to code** – one `setItem`, done.
 - **Data volume** – orders are a few KB each; 5 MB covers thousands of tickets.
-- **Extra-safety** – startup guard checks `Blob(Object.values(localStorage)).size`; if >4 MB we push pending changes, wipe old orders, and re-sync.
+- **Extra-safety** – startup guard checks `(Object.values(localStorage)).size`; if >4 MB we push pending changes, wipe old orders, and re-sync.
   _When the menu grows to 50 k items we swap in Dexie/IndexedDB – all domain code stays the same._
 
 ---

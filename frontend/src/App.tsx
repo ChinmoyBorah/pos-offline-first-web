@@ -22,7 +22,6 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const { cart, addItem, removeItem } = useCart();
   const { orders, updateStatus } = useOrders();
-  const [view, setView] = useState<string>(ROLE);
   const [dashboard, setDashboard] = useState(false);
 
   // Seed products into DataService and pull them for UI
@@ -104,7 +103,7 @@ const App: React.FC = () => {
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <NavBar view={ROLE} setView={setView} setDashboard={setDashboard} />
+      <NavBar view={ROLE} setDashboard={setDashboard} />
       <Suspense fallback={<div>Loading...</div>}>
         <div
           style={{
@@ -116,9 +115,6 @@ const App: React.FC = () => {
           {renderContent()}
         </div>
       </Suspense>
-      {/* {dashboard && (
-        <button onClick={() => setDashboard(false)}>Back to Catalog</button>
-      )} */}
       <SyncBadge />
     </div>
   );

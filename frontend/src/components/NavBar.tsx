@@ -3,7 +3,6 @@ import styles from "./nav.module.css";
 
 interface Props {
   view: string;
-  setView: (v: string) => void;
   setDashboard: (v: boolean) => void;
 }
 
@@ -15,7 +14,7 @@ const views = [
   { key: "manager", label: "Manager" },
 ];
 
-const NavBar: React.FC<Props> = ({ view, setView, setDashboard }) => {
+const NavBar: React.FC<Props> = ({ view, setDashboard }) => {
   const visible = views.filter((v) => v.key === ROLE);
   return (
     <nav className={styles.nav}>
@@ -24,7 +23,6 @@ const NavBar: React.FC<Props> = ({ view, setView, setDashboard }) => {
           key={v.key}
           className={styles.navtabs}
           onClick={() => {
-            setView(v.key);
             setDashboard(false);
           }}
           style={{
