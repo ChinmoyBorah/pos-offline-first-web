@@ -15,7 +15,6 @@ How to run in development environment:
 
 <h2>Below is the implementation strategies for an offline-capable Point-of-Sale system.</h2>
 
----
 
 <h3>High level Implementation Strategy – Single-App / Multi-View</h3>
 
@@ -65,10 +64,10 @@ How to run in development environment:
 
 <h2>Below is a deep-dive explanation of the current lightweight POS prototype, walking through the entire data journey—from a tap on the “Add” button to the moment every device converges.</h2>
 
-────────────────────────────────────────
 
-1. Front-End Flow (per role)
-   ────────────────────────────────────────
+
+A. Front-End Flow (per role)
+ 
    A. UI composition  
     • The React tree is extremely thin:  
     Cashier → `CatalogList` + `CartDrawer`  
@@ -111,7 +110,8 @@ B. User interaction sequence
     The same pattern of data storage and syncing will be seen in other apps as well.
 
 C. LocalStorage Buckets & Queuing Rules
-────────────────────────────────────────
+
+
     | Key (per-role) | Contents |
 
     | `<ROLE>_pos_products` | Seed product catalog (array of objects) |
@@ -127,7 +127,8 @@ C. LocalStorage Buckets & Queuing Rules
     • No change is ever removed until the backend acknowledges (`acceptedIds`).
 
 D. Synchronisation Loop
-────────────────────────────────────────
+
+
     a. Front-End (`SyncEngine`)
 
         ```
