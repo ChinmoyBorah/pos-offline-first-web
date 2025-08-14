@@ -38,7 +38,7 @@ How to run in development environment:
 
   <h4>Role based Strategy – Role-Isolated Apps</h4>
 
-  ### Key Technical Pivots
+  Key Technical Pivots
 
   1. **Role-scoped LocalStorage**
 
