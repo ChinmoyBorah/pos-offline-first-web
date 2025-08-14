@@ -16,6 +16,7 @@ const CatalogList: React.FC<Props> = ({ products, onAdd, onOpenDashboard }) => {
 
   const ROLE = (import.meta as any).env?.VITE_ROLE || "manager";
   const dashLabel = ROLE === "cashier" ? "Order Dashboard" : "Print Dashboard";
+  
   return (
     <div style={{ flex: 1, padding: "2rem", overflowY: "auto" }}>
       <h2 style={{ margin: 0 }}>Catalog</h2>

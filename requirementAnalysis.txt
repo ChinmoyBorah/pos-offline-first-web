@@ -73,7 +73,7 @@ Solution:
 
 Solutions:
  a. Comparing IndexedDB, WebSQL, and localStorage:
-   1. Localstorage has 5-10 MB limit. Read/Write is synchronous, blocks Ui on each read/write, when no of orders gets very high we might need to clear localstorage for faster reads and writes. But works everywhere , zero setup.
+   1. Localstorage has 5-10 MB limit. Read/Write is synchronous, blocks Ui on each read/write, when number of orders gets very high we might need to clear localstorage for faster reads and writes. But works everywhere , zero setup.
    2. WenSql is deprecated. It is no longer actively being developed as a web standard and is not recommended for new projects
    3. Indexdb is modern, right choice once we exceed localStorage size or need complex queries, supports async read/write and have large size quota. Supports indexes for fast look-up. Needs more boilerplate code or wrapper like dexie.js
 
@@ -85,6 +85,8 @@ Solutions:
 
  c. Data pruning strategy:
    1. We can keep only the present day (or last N day) order records in localStorage. We need a switch where user can remove all entries from storage before starting.
-   2. Drop changes older than particular time or day as a safety net.
-   3. Changes for orders which are completed (status complete), on manager device, can be remove from server changes that are sent to each devices.
+   2. Once orders are completed , we can remove it from all devices except managers device.
+   3. We can implement a safety net , startup guard checks `(Object.values(localStorage)).size`; if size > 4 MB we push pending changes, wipe old orders, and re-sync.
+   
+
    
