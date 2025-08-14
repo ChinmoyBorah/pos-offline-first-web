@@ -19,74 +19,49 @@ How to run in development environment:
 
 <h3>High level Implementation Strategy – Single-App / Multi-View</h3>
 
-    Architecture
+  <h4>Architecture</h4>
 
-    - **Frontend**: one React PWA with four internal views (Cashier, Kitchen, Serving, Manager) toggled by a top navigation bar. Role based isolation of apps*.
+    - <b>Frontend</b>: One React App with four internal views (Cashier, Kitchen, Serving, Manager). The views are based on ROLE that is injected at build time. All apps hosts on different port and mantains role based localStorage entries for isolation and simplicity.
 
-    - **Data Layer**: shared `DataService` (LocalStorage) + `SyncEngine` for background push/pull with the backend.
-    - **Persistence**:
+    - <b>Data Layer</b>: shared `DataService` + `SyncEngine` for managing local data and background push/pull with the backend for syncing.
 
-      LocalStorage keys (`pos_products`, `pos_cart`, `pos_orders`, `pos_changes`).
+    - <b>Persistence</b>:
+      LocalStorage keys depends on role (`{ROLE}_pos_products`, `{ROLE}_pos_cart`, `{ROLE}_pos_orders`, `pos_changes`) so that each of them can be tested on one browser.
 
-    - **Backend**: tiny Node/Express server with LowDB and a `/sync` endpoint.
+    - <b>Backend</b>: tiny Node/Express server with LowDB and a `/sync` and `/menu` public endpoint.
 
     ```
     ┌─────────────┐               ┌───────────────┐
-    │ React PWA   │  ↔  /sync  ↔  │  Express API  │
+    │ React APP  │  ↔  /sync  ↔  │  Express API  │
     └─────────────┘               └───────────────┘
 
     ```
 
-<h3>Role based Strategy – Role-Isolated Apps</h3>
+  <h4>Role based Strategy – Role-Isolated Apps</h4>
 
-High-Level Structure
+  ### Key Technical Pivots
 
-```
-apps -> Run multiple versions of the app based on role -> cashier, kitchen, service
-  cashier-pwa/     # order entry & payment
-  kitchen-pwa/     # prepare board (Pending → Ready)
-  serving-pwa/     # runner board (Ready → Completed)
-  manager-pwa/     # overview & analytics
+  1. **Role-scoped LocalStorage**
 
-packages ->
-  features/        # shared OfflineDataStore + SyncEngine
+    ```ts
+    const ROLE = import.meta.env.VITE_ROLE; // 'cashier', 'kitchen', ...
+    const PRODUCTS_KEY = `${ROLE}_pos_products`;
+    ```
 
-```
+    Each app writes to its own namespace in localStorage (e.g. `cashier_pos_cart`).
 
-### Key Technical Pivots
+  2. **Prefixed sync meta** – per-role last-sync timestamps (`cashier_pos_sync_meta`).
+  3. **Change Queue** – every queued change carries its `role` for backend auditing. (`cashier_pos_changes`)
 
-1. **Role-scoped LocalStorage**
+  4. **Build-time injection**
 
-   ```ts
-   const ROLE = import.meta.env.VITE_ROLE; // 'cashier', 'kitchen', ...
-   const PRODUCTS_KEY = `${ROLE}_pos_products`;
-   ```
+    ```bash
+    # Cashier
+    VITE_ROLE=cashier npm run dev -- --port 5173
+    # Kitchen
+    VITE_ROLE=kitchen npm run dev -- --port 5174
+    ```
 
-   Each app writes to its own namespace (e.g. `cashier_pos_cart`).
-
-2. **Prefixed sync meta** – per-role last-sync timestamps (`cashier_pos_sync_meta`).
-3. **Change provenance** – every queued change carries its `role` for backend auditing.
-
-4. **Build-time injection**
-
-   ```bash
-   # Cashier
-   VITE_ROLE=cashier npm run dev -- --port 5173
-   # Kitchen
-   VITE_ROLE=kitchen npm run dev -- --port 5174
-   ```
-
----
-
-db.json init
-
-// {
-// "products": [],
-// "orders": [],
-// "changes": []
-// }
-
----
 
 <h2>Below is a deep-dive explanation of the current lightweight POS prototype, walking through the entire data journey—from a tap on the “Add” button to the moment every device converges.</h2>
 
@@ -103,238 +78,125 @@ db.json init
     • Each app starts `syncEngine.start()` once and shows a `SyncBadge` with the
    current status (`idle`, `syncing`, `error`).
 
-B. User interaction sequence (Cashier example)
+B. User interaction sequence
 
-1.  User taps “Add” next to a product  
-    → `CatalogList` calls `DataService.addToCart(productId)`
-2.  `addToCart()`  
-     • Reads current cart from LocalStorage  
-     • Mutates it in memory, persists it back (`<ROLE>_pos_cart`)  
-     • Emits `cartListeners` so the UI updates instantly  
-     • Appends a **change object** to the queue (`<ROLE>_pos_changes`)  
-     `json
-{ "id":"1693502921-abc", "type":"cartAdd",
-  "payload":{ "productId":"1" }, "ts":1693502921 }
-` 3. User hits “Checkout”  
-     → `createOrder(cart)`  
-     • Builds an `order` object `{ id, items, status:'pending', ts }`  
-     • Saves the order to `<ROLE>_pos_orders`  
-     • Queues an `addOrder` change  
-     • Clears the cart (and emits event so drawer empties)
+  Cashier APP:
+    1.  User taps “Add” next to a product  
+        → `CatalogList` calls `DataService.addToCart(productId)`
+    2.  `addToCart()`  
+        • Reads current cart from LocalStorage  
+        • Mutates it in memory, persists it back (`<ROLE>_pos_cart`)  
+        • Emits `cartListeners` so the UI updates instantly  
+        • Appends a **change object** to the queue (`<ROLE>_pos_changes`)  
+        `json
+            { "id":"1693502921-abc", "type":"cartAdd",
+              "payload":{ "productId":"1" }, "ts":1693502921 }
+        `
 
-C. Role isolation  
- All keys are prefixed by `VITE_ROLE` (`cashier_pos_cart`, `kitchen_pos_orders`, …) so no two roles ever overwrite each other’s cache.
+    3. User hits “Checkout”  
+        → `createOrder(cart)`  
+        • Builds an `order` object `{ id, items, status:'pending', ts }`  
+        • Saves the order to `<ROLE>_pos_orders`  
+        • Queues an `addOrder` change  
+        • Clears the cart (and emits event so drawer empties)
+    
+   Kitchen App
+    1. Calls /sync api with empty change array to fetch order changes from cashier/manager apps
+    2. Applies the changes to create/update or modify orders.
+    3. Displays the orders according to their status -> Pending, preparing
+    4. Modifies the status of the order or Marks it as complete
+    5. Appends change object to the queue and emits listeners to update UI instantly
+    6. Again call sync api with its change queue to change them on remote devices/
 
-──────────────────────────────────────── 2. LocalStorage Buckets & Queuing Rules
+    The same pattern of data storage and syncing will be seen in other apps as well.
+
+C. LocalStorage Buckets & Queuing Rules
 ────────────────────────────────────────
-| Key (per-role) | Contents |
-|---------------------------|-------------------------------------------|
-| `<ROLE>_pos_products` | Seed product catalog (array of objects) |
-| `<ROLE>_pos_cart` | `{ productId → qty }` map |
-| `<ROLE>_pos_orders` | Array of orders with status |
-| `<ROLE>_pos_changes` | **FIFO change log** (objects with `id`, `type`, `payload`, `ts`) |
-| `<ROLE>_pos_sync_meta` | `{ lastSyncAt: number }` |
+    | Key (per-role) | Contents |
 
-Queuing rules  
- • Every _mutation_ goes through `queueChange()` which pushes the mini-delta and
-never blocks the UI.  
- • Each change gains a Lamport-style `ts = Date.now()` so devices can order them
-without a central counter.  
- • No change is ever removed until the backend acknowledges (`acceptedIds`).
+    | `<ROLE>_pos_products` | Seed product catalog (array of objects) |
+    | `<ROLE>_pos_orders` | Array of orders with status |
+    | `<ROLE>_pos_changes` | **FIFO change log** (objects with `id`, `type`, `payload`, `ts`) |
+    | `<ROLE>_pos_sync_meta` | `{ lastSyncAt: number }` |
 
-──────────────────────────────────────── 3. Synchronisation Loop
+    Queuing rules  
+    • Every _mutation_ goes through `queueChange()` which pushes the queued changes and
+    never blocks the UI.  
+    • Each change gains a local timeStamp `ts = Date.now()` so devices can order them
+    without a central counter.  
+    • No change is ever removed until the backend acknowledges (`acceptedIds`).
+
+D. Synchronisation Loop
 ────────────────────────────────────────
-A. Front-End (`SyncEngine`)
+    a. Front-End (`SyncEngine`)
 
-    ```
-    tick() every 15 s or on navigator.onLine:
-    1. Read queue   →   changes []
-    2. POST /sync   →   { changes, lastSyncAt }
-    3. On success:
-      • remove acceptedIds from queue
-      • apply serverChanges via DataService.applyRemoteChange()
-      • lastSyncAt = max( lastSyncAt, ...serverChanges.ts )
-    ```
+        ```
+        tick() every 10 s or on "online" event or during page reload:
+        1. Read queue   →   changes []
+        2. POST /sync   →   { changes, lastSyncAt }
+        3. On success:
+          • remove acceptedIds from queue
+          • apply serverChanges via DataService.applyRemoteChange()
+          • lastSyncAt = max( lastSyncAt, ...serverChanges.ts )
+        ```
 
-    Why it works:
-    • By always calling `/sync` (even with an empty queue) each app performs a pure **pull** when it has nothing to push—solving the “Kitchen never refreshes” bug.
-    • Clock skew cannot drop updates because we advance `lastSyncAt` using the
-      timestamp embedded in the data, not the device clock.
+        Why it works:
+        • By always calling `/sync` (even with an empty queue) each app performs a pure <b>pull</b> even when it has nothing to push syncing remote changes , if there are any.
+        • We use lastSyncAt, calculated from change's server timestamp,  denoting the last time the particular client was synced, so server knows which changes are already synced and it also doesnot cause issue when multiple devices sync at different time and creates/modifies orders at different time.
 
-    B.  Backend (`POST /sync`)
+    b.  Backend (`POST /sync`)
 
-    Pseudo-code inside `server.js`:
+       1. When server receives sync changes from a device, it queues it in its own storage(lowDb).
+       2. It mantains a timestamp for each changes, so it can identify which client/changes was synced when.
+       3. It sends back the changes it had queued since that last time the client was synced, along with the server timestamps for the changes, so that client can calculate the maximum time/lastSyncTime to store and send  on subsequent sync request. 
 
-    ```js
-    app.post('/sync', async (req, res) => {
-      const { changes=[], lastSyncAt=0 } = req.body;
-
-      // 1. Persist inbound changes
-      for (c of changes) {
-        db.data.changes.push(c);
-        switch(c.type) {
-          case 'addOrder':          db.data.orders.push(c.payload);           break;
-          case 'updateOrderStatus': updateStatus(c.payload);                  break;
-          /* other types ... */
-        }
-      }
-      await db.write();
-
-      // 2. Compose outbound payload
-      const serverChanges = db.data.changes.filter(c => c.ts > lastSyncAt);
-
-      res.json({ serverChanges, acceptedIds: changes.map(c => c.id) });
-    });
-    ```
-
-    Important details
-    • **Idempotency**: repeating the same change ID is harmless because we always
-      *upsert*.
-    • **Partial sync**: `lastSyncAt` acts like a cursor—only newer changes are sent,
-      so payload stays small even with a large history.
-    • **Stateless clients**: the server never stores per-device cursors; each device
-      tells the server where it left off.
-
+    
     C.  Conflict & Convergence
-    • Financial data is append-only (`addOrder`) so it never conflicts.
-    • Status updates: latest timestamp wins (`updateOrderStatus`).
+    • Add order data is append-only so it never conflicts.
+    • Status updates of orders : update with last timestamp wins.
+    . Modify order: update with last timestamp wins.
     • Because all replicas apply the exact same deterministic rules, they inevitably
       converge after exchanging their change logs.
 
     ────────────────────────────────────────
 
-4.  End-to-End Timeline Example
+E.  End-to-End Timeline Example( cashier and kitchen)
     ────────────────────────────────────────
-    1️⃣ Cashier (offline) queues `addOrder (ts=100)`  
-    2️⃣ Cashier goes online → pushes change → server stores & echoes  
+    1️⃣ Cashier (offline) queues changes  
+    2️⃣ Cashier goes online → pushes change → server stores -> sends lastSyncTime.  
     3️⃣ Kitchen is still offline (queue empty)  
-    4️⃣ Kitchen regains connectivity → sends `changes:[] , lastSyncAt:0`  
-     Server responds with `[ addOrder@100 ]`  
-    5️⃣ Kitchen applies order, sets `lastSyncAt=100`  
-    6️⃣ Kitchen marks “preparing”, queues `updateOrderStatus@120`  
-    7️⃣ Kitchen online → push status update  
-    8️⃣ Cashier tick (queue empty) → asks for changes since 100 → gets status@120  
+    4️⃣ Kitchen regains connectivity → polls /sync request with no changes and lastSyncTime of 0. Server responds with change queue gained from cashier.  
+    5️⃣ Kitchen applies order, sets `lastSyncAt` as maximum server timestamp of changes from cashier app 
+    6️⃣ Kitchen marks “preparing”, queues updatestatus change locally 
+    7️⃣ Kitchen online → push status update changes in queue 
+    8️⃣ Cashier polls with empty change queue(as there are no new changes to sync from cashier side) and lastSyncTime 
      Cashier board updates.
 
     Result: both devices hold identical order lists and statuses.
 
     ────────────────────────────────────────
 
-5.  Files to Inspect
-    ────────────────────────────────────────
-    Frontend
-
-    ```
-    packages/core-sdk/DataService.ts    // storage & queue
-    packages/core-sdk/SyncEngine.ts     // network loop
-    apps/cashier-pwa/src/...            // role UIs
-    ```
-
-    Backend
-
-    ```
-    backend/server.js                   // 80 lines, Express + lowdb
-    backend/db.json                     // flat JSON store
-    ```
-
     With this architecture you can unplug any device for hours, clear _another_
     device’s storage, or run them with different system clocks, and they will still
     reconcile the moment at least one of them gets back online.
-
-    <h2>Issues with present sync method</h2>
-
-       <h3>1st issue: Issue Description</h3>
-
-       <section>
-       There are 2 issues in this implementation of lastSyncAt:
-           Suppose we are creating orders from cashier and kitchen app in the order:
-             1. cashier app adds item no 1
-             2. kitchen app adds item no 2
-             3. cashier app adds item no 3
-
-           Now Suppose kitchen app starts syncing first then cashier app. On kitchen app sync, it updates the lastSyncAt to timestamp of item 2 and server returns the app only changes for item 2.Hence it cannot sync with cashier app yet.
-
-           When cashier app syncs, it will update lastSyncAt to timestamp of item 3 and server will return all changes hence it will also sync with kitchen app.
-
-           Now when kitchen app goes to sync with cashier app, server will only send the item 3 of kitchen app as it is the only one with timestamp greater than lastSyncAt of kitchen app.
-           </section>
-
-
-         <h3>2st issue: Issue Description</h3>
-           Dependence on client-supplied timestamps -> if the clients have clocks that doesnot have the same time -> missing order during sync
-
-           Solution: <b>server-assigned timeStamps</b>
-
-             Server will maintain time when the sync happens, and will append that time to the change object before pushing it to the server changes array.
-             in client, It will maintain the sync time of the change that was synced last
-             Then server will serve the client with changes that synced only after the lastSync time of client.
-
-
 
 
 
 ## 🔹 Print Feature Implementation Strategy
 
-The printing subsystem is **fully modular** so each role-app can adopt, swap or extend it without touching business logic.
+The printing subsystem is **fully modular**, both cashier and kitchen apps can adopt, swap or extend it without touching business logic. I have made the implementation simple. Consideration:  Only one device is connected to each printer
 
 ### Core Building Blocks
 
-1. **`services/PrintConfig.ts`**  
-   Central toggle & parameters.
-
-   ```ts
-   PrintConfig.failOnce(); // Next job will be forced to error once
-   PrintConfig.shouldFailNext; // Runtime flag (reset automatically)
-   ```
-
-   • Can be enriched with timeouts, destinations, custom templates, etc.  
-   • Auto-attached to `window` for dev-console usage; no UI exposure.
-
-2. **`services/DataService.ts`** (print section)  
-   Persistent LocalStorage bucket `<ROLE>_pos_printJobs` + listeners.  
-   CRUD helpers: `getPrintJobs`, `savePrintJobs`, `updatePrintJobStatus`, `removePrintJob`, `subscribePrintJobs`.
-
-3. **`services/PrintJobManager.ts`**  
-   Stateless runner that:
-   • polls every 4 s, picks first `queued` job that current role handles.  
-   • flips it → `printing`; waits `PROCESS_TIME` (5 s).  
-   • checks `PrintConfig.consumeFailFlag()` → decides _error_ vs _done_.  
-   • auto-removes success rows after 2 s.  
-   • exposes `add(job)` and `retry(id)`.
-
-4. **`hooks/usePrintJobs.ts`**  
-   Tiny React hook → realtime list for UI.
-
-5. **UI Components**  
-   • `PrintDashboard` subscribes to `usePrintJobs()`.  
-   • Spinner for active job, idle dot for queued, ✔ / ✖ outcome.  
+1. **UI Components**  
+   • `PrintDashboard` subscribes to `usePrintJobs()`.
+   . When a user(cashier or kitchen) starts printing receipts, they are queued.
+   . Printing happens one at a time untill all of the jobs are completed
+   • Spinner for active job, idle dot for queued, ✔ / ✖  for outcome.  
    • Retry button only when `status === "error"`.
+   . On retry it will be added to the end of the queue and will wait for other printjobs in line to finish.
 
 ### Customisation & Re-use
 
-_Templates_ – `PrintJob.html` field stores raw HTML. Swap in another renderer or use a template factory per destination.
-
-_Destinations_ – extend `handlesDest()` to map new printer roles.
-
 _Failure Simulation_ – lives **only** in `PrintConfig`; production builds can tree-shake it out or guard with `process.env.NODE_ENV`.
 
-```ts
-// example: always fail kitchen prints in staging
-if (import.meta.env.MODE === "staging" && job.dest === "kitchen") {
-  PrintConfig.failOnce();
-}
-```
-
-### Sequence Diagram
-
-```
-Catalog → createOrder   ──► DataService.addPrintJob() ──► LocalStorage
-                          ▲                               │
-          PrintJobManager ◄──────── tick() ───────────────┘
-              │ printing                               (5s)
-              ▼
-          updatePrintJobStatus('done') ───► listener ───► UI ✔
-          removePrintJob() after 2s
-```
-
-The design ensures **one job at a time**, offline persistence, dev-only failure hooks and minimal coupling – any frontend or backend can drop-in a new `PrintJobManager` while keeping the storage & config contracts intact.
