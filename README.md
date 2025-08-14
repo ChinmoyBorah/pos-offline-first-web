@@ -1,4 +1,94 @@
-# Lightweight Offline-First POS
+# Offline-First POS – Developer Walkthrough
+
+_A real-world coding exercise turned into a tiny but fully working Point-of-Sale system that keeps running even when the Wi-Fi dies._
+
+---
+
+## 1. Why this project exists
+
+> Food-truck crews don’t care about databases, they care about taking orders while the truck is parked in a dead-zone.  
+> My goal was to prove that a React PWA + a 90-line Node server can do just that – with zero third-party services.
+
+---
+
+## 2. Birds-eye view
+
+```
+┌─────────────┐   LocalStorage   ┌───────────────┐
+│  React APP  │  ←→  SyncEngine ←→  Express-LowDB │
+└─────────────┘  (every 10 s)   └───────────────┘
+```
+
+- **Roles** – separate builds (`VITE_ROLE`) so each tablet only shows its own UI (Cashier, Kitchen, Serving, Manager).
+- **Data** – persisted locally first, then synced; the server is just a mailbox for change-logs.
+- **Printing** – a micro-queue in LocalStorage processed one job at a time; can be swapped for a server queue later.
+
+---
+
+## 3. Front-end anatomy (per role)
+
+| Role    | Screen         | Main Components             |
+| ------- | -------------- | --------------------------- |
+| Cashier | Catalog + Cart | `CatalogList`, `CartDrawer` |
+| Kitchen | Prep board     | `OrderBoard`                |
+| Serving | Runner board   | `OrderBoard`                |
+| Manager | Overview board | `OrderBoard`                |
+
+Each build boots `SyncEngine.start()` exactly once, draws a tiny tree, and shows a live `SyncBadge` (green / yellow / red).
+
+### 3.1 Local buckets (all prefixed by role)
+
+```
+<ROLE>_pos_products   // static menu
+<ROLE>_pos_orders     // [{ id, items, status }]
+<ROLE>_pos_changes    // FIFO change log for /sync
+<ROLE>_pos_printJobs  // tiny local print queue
+```
+
+### 3.2 Sync loop in one Tweet
+
+```ts
+setInterval(tick, 10_000);
+async function tick() {
+  const payload = { changes, lastSyncAt };
+  const { serverChanges, acceptedIds } = await post("/sync", payload);
+  remove(acceptedIds); // clears local queue
+  apply(serverChanges); // DataService.applyRemoteChange
+  lastSyncAt = maxTS(serverChanges);
+}
+```
+
+_Every mutation is a 200-byte JSON delta, so polling stays cheap even on 2G tethering._
+
+---
+
+## 4. Printing story (cashier & kitchen)
+
+1. **Queue** – `DataService.savePrintJobs()` stores jobs locally; status is `queued → printing → done|error`.
+2. **Runner** – `PrintJobManager` polls every 6 s, grabs the first `queued` job that belongs to its role (`handlesDest()`), simulates a 5 s print, then marks ✔ or ✖.
+3. **UI** – `PrintDashboard` shows one spinner, grey dots for queued, green ✔, red ✖ + Retry.
+4. **Mock failure** – developers call `PrintConfig.failOnce()` in the console – user never sees the toggle.
+
+---
+
+## 5. Why LocalStorage and not IndexedDB?
+
+- **Speed to code** – one `setItem`, done.
+- **Data volume** – orders are a few KB each; 5 MB covers thousands of tickets.
+- **Extra-safety** – startup guard checks `Blob(Object.values(localStorage)).size`; if >4 MB we push pending changes, wipe old orders, and re-sync.
+  _When the menu grows to 50 k items we swap in Dexie/IndexedDB – all domain code stays the same._
+
+---
+
+## 6. What happens offline?
+
+1. Cashier loses Wi-Fi, keeps selling – changes queue locally.
+2. Kitchen tablet still online, keeps prepping.
+3. Cashier reconnects → `SyncEngine` pushes its backlog; server echoes to kitchen → boards converge.
+   _The truck can run all day without signal; once one tablet gets 3G the fleet catches up._
+
+---
+
 
 How to run in development environment:
 
@@ -12,6 +102,29 @@ How to run in development environment:
    VITE_ROLE=cashier npm run dev -- --port 5177
 5. Go to server directory
 6. npm install and npm run dev
+
+
+Open the two URLs side-by-side; place orders offline, watch them sync when you bring Wi-Fi back. Hit the print buttons and enjoy the little spinner doing its job.
+
+---
+
+## 9. What I’d polish next (if this were production)
+
+- Switch to IndexedDB via Dexie, add full-text index for 10 k-item menus.
+- Replace local print queue with REST + a small printer agent.
+- Add SSE for near-instant kitchen <-> cashier updates.
+- Wrap everything in Cypress e2e tests (offline/online scenarios).
+
+_But for a weekend prototype, this code gets the truck rolling and keeps it rolling when the network doesn’t._
+
+
+
+
+
+
+
+
+
 
 <h2>Below is the implementation strategies for an offline-capable Point-of-Sale system.</h2>
 
@@ -31,14 +144,12 @@ How to run in development environment:
 
     ```
     ┌─────────────┐               ┌───────────────┐
-    │ React APP  │  ↔  /sync  ↔  │  Express API  │
+    │ React APP  │  ↔  /sync  ↔  │  Express API -lowDb │
     └─────────────┘               └───────────────┘
 
     ```
 
-  <h4>Role based Strategy – Role-Isolated Apps</h4>
-
-  Key Technical Pivots
+  <h4>Key Technical Pivots</h4>
 
   1. **Role-scoped LocalStorage**
 
@@ -180,24 +291,4 @@ E.  End-to-End Timeline Example( cashier and kitchen)
     With this architecture you can unplug any device for hours, clear _another_
     device’s storage, or run them with different system clocks, and they will still
     reconcile the moment at least one of them gets back online.
-
-
-
-## 🔹 Print Feature Implementation Strategy
-
-The printing subsystem is **fully modular**, both cashier and kitchen apps can adopt, swap or extend it without touching business logic. I have made the implementation simple. Consideration:  Only one device is connected to each printer
-
-### Core Building Blocks
-
-1. **UI Components**  
-   • `PrintDashboard` subscribes to `usePrintJobs()`.
-   . When a user(cashier or kitchen) starts printing receipts, they are queued.
-   . Printing happens one at a time untill all of the jobs are completed
-   • Spinner for active job, idle dot for queued, ✔ / ✖  for outcome.  
-   • Retry button only when `status === "error"`.
-   . On retry it will be added to the end of the queue and will wait for other printjobs in line to finish.
-
-### Customisation & Re-use
-
-_Failure Simulation_ – lives **only** in `PrintConfig`; production builds can tree-shake it out or guard with `process.env.NODE_ENV`.
 
