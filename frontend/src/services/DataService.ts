@@ -264,10 +264,42 @@ class LocalDataService {
 
   /* Change-queue helpers – stored for later sync with backend */
   private queueChange(change: { type: string; payload: any; ts: number }) {
+    // 1. persist in localStorage (for legacy polling logic & inspection)
     const raw = localStorage.getItem(CHANGES_KEY);
     const queue = raw ? (JSON.parse(raw) as any[]) : [];
-    queue.push({ id: this.generateId(), ...change });
+    const record = { id: this.generateId(), ...change };
+    console.log("[App] postMessage → enqueueChange", record);
+    queue.push(record);
     localStorage.setItem(CHANGES_KEY, JSON.stringify(queue));
+
+    // 2. forward to the Service-Worker so background-sync can push it
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      console.log("[SW] queue length after put", queue.length);
+      const send = (sw: ServiceWorker) =>
+        sw.postMessage({ type: "enqueueChange", change: record });
+
+      if (navigator.serviceWorker.controller) {
+        send(navigator.serviceWorker.controller);
+      } else {
+        // If the page is outside the SW scope, .ready never resolves.
+        // Fallback: fetch the registration explicitly.
+        navigator.serviceWorker
+          .getRegistration()
+          .then((reg) => {
+            if (reg?.active) {
+              send(reg.active);
+            } else {
+              // last-ditch: enumerate all registrations (multi-scope dev servers)
+              navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.active && send(r.active));
+              });
+            }
+          })
+          .catch(() => {
+            /* no SW yet */
+          });
+      }
+    }
   }
 
   /* Rollback stub – in a real sync engine we'd match change id and undo. */

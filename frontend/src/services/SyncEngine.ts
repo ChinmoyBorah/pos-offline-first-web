@@ -27,8 +27,8 @@ class SyncEngine {
   start() {
     if (this.timerId) return; // already running
 
-    window.addEventListener("online", () => this.tick());
-    this.timerId = window.setInterval(() => this.tick(), 10000);
+    // window.addEventListener("online", () => this.tick());
+    // this.timerId = window.setInterval(() => this.tick(), 10000);
     this.tick(); // immediate attempt
   }
 
