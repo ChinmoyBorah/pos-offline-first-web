@@ -12,9 +12,9 @@ Solution:
    1. Every write(create order, update Order status, modify order) is turned into a tiny change object and appended to a queue in LocalStorage and postMessage it to Service Worker.
    2. Service-Worker's (always runs, even with the tab in background) message handler receives the enqueued changes along with a type.
    3. Reads the change array in indexedDb, and pushes new record and writes it in the db.
-   4. We implement two kinds of syncs, one service worker and the other pooling, because if the browser doesnot support background sync or service worker fails, we need a fallback.
+   4. We implement two kinds of syncs, one service worker and the other polling, because if the browser doesnot support background sync or service worker fails, we need a fallback. 
    5. When online, sync event of service worker fires /sync api after getting full queue from indexedDb and we broadcast its response with postMessage.The client picks the changes in message event handler and updated the UI.
-      We also poll the /sync api at an interval of 15s.
+      The localStorage is for UI persistence during reloads and syncing as a backup. IndexedDb is used only by the service worker to store its data during offline session.
       a. Single sync endpoint (/sync) where clients POST its queued changes along with the last time it was synced.; 
       b. Server stamps every inbound change request from client with an server timestamp, stores it and sends it to the client.
       c. Server returns only changes whose server timestamp is greater than the last sync time of client; bandwidth stays small.
