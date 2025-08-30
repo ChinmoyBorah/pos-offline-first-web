@@ -32,16 +32,16 @@
 
 ```mermaid
 flowchart LR
-    subgraph Client-Side
-        A[React UI (role-specific)] -- "mutations" --> DS[DataService]
-        DS -- "local save" --> LS[(LocalStorage)]
-        DS -- "postMessage" --> SW[Service Worker]
-        SW -- "BG Sync" --> BE[/sync API]
-        DS -- "subscribe" --> SE[SyncEngine]
-        SE -- "15 s polling" --> BE
+    subgraph "Client-Side"
+        A["React UI (role-specific)"] -->|"mutations"| DS["DataService"]
+        DS -->|"local save"| LS[("LocalStorage")]
+        DS -->|"postMessage"| SW["Service Worker"]
+        SW -->|"BG Sync"| BE["/sync API"]
+        DS -->|"subscribe"| SE["SyncEngine"]
+        SE -->|"15 s polling"| BE
     end
 
-    BE --> DB[(LowDB JSON)]
+    BE --> DB[("LowDB JSON")]
 ```
 
 Legend:
