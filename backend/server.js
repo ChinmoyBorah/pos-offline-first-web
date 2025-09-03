@@ -67,6 +67,7 @@ async function start() {
     const serverChanges = db.data.changes.filter(
       (c) => c.serverTs > lastSyncAt
     );
+    res.setHeader("Access-Control-Allow-Origin", "*")
     res.json({ serverChanges, acceptedIds: changes.map((c) => c.id) });
   });
 

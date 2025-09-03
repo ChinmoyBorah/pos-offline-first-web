@@ -26,9 +26,8 @@ class SyncEngine {
 
   start() {
     if (this.timerId) return; // already running
-
     // window.addEventListener("online", () => this.tick());
-    // this.timerId = window.setInterval(() => this.tick(), 10000);
+    this.timerId = window.setInterval(() => this.tick(), 15000);
     this.tick(); // immediate attempt
   }
 
@@ -46,7 +45,7 @@ class SyncEngine {
   }
 
   private async tick() {
-    // if (!navigator.onLine) return;
+    if (!navigator.onLine) return;
     const queueRaw = localStorage.getItem(CHANGES_KEY);
     const queue = queueRaw ? (JSON.parse(queueRaw) as any[]) : [];
     // Always attempt a pull; push only if we have queued changes
